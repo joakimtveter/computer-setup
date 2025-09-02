@@ -162,7 +162,20 @@ brew update || log_warning "Failed to update Homebrew"
 # Array of cask apps to install
 declare -a cask_apps=(
     "aerospace"
-    "ghostty" 
+    "raycast"
+    "vivaldi"
+    "google-chrome"
+    "ghostty"
+    "displaylink"
+    "postman"
+    "dbeaver-community"
+    "omnissa-horizon-client"
+    "obsidian"
+    "espanso"
+    "bitwarden"
+    "docker-desktop"
+    "microsoft-teams"
+    "microsoft-outlook"
     "notunes"
 )
 
@@ -183,6 +196,7 @@ done
 # Optional: Install some useful CLI tools
 log_info "Installing useful CLI tools..."
 declare -a cli_tools=(
+    "python"
     "git"
     "curl"
     "wget"
@@ -190,6 +204,10 @@ declare -a cli_tools=(
     "tree"
     "imagemagick"
     "wp-cli"
+    "taskell"
+    "mas"
+    "mpv"
+    "ffmpeg"
 )
 
 for tool in "${cli_tools[@]}"; do
