@@ -205,6 +205,70 @@ for tool in "${cli_tools[@]}"; do
     fi
 done
 
+# Create development directory structure
+log_info "Creating development directory structure..."
+CODE_DIR="$HOME/code"
+if [[ ! -d "$CODE_DIR" ]]; then
+    mkdir -p "$CODE_DIR"/{work,personal}
+    log_success "Created development directories:"
+    log_info "  📁 ~/code/work"
+    log_info "  📁 ~/code/personal"
+else
+    # Create subdirectories if they don't exist
+    [[ ! -d "$CODE_DIR/work" ]] && mkdir -p "$CODE_DIR/work" && log_success "Created ~/code/work directory"
+    [[ ! -d "$CODE_DIR/personal" ]] && mkdir -p "$CODE_DIR/personal" && log_success "Created ~/code/personal directory"
+    log_info "Development directory structure verified"
+fi
+
+# Configure Git
+log_info "Configuring Git..."
+if command_exists git; then
+    # Set global git name
+    git config --global user.name "Joakim Tveter"
+    log_success "Set global Git name to: Joakim Tveter"
+    
+    # Configure work folder git email using conditional includes
+    WORK_GITCONFIG="$CODE_DIR/work/.gitconfig"
+    cat > "$WORK_GITCONFIG" << EOF
+[user]
+    email = joakim.tveter@netpower.no
+EOF
+    log_success "Created work-specific Git config: $WORK_GITCONFIG"
+    
+    # Configure personal folder git email using conditional includes
+    PERSONAL_GITCONFIG="$CODE_DIR/personal/.gitconfig"
+    cat > "$PERSONAL_GITCONFIG" << EOF
+[user]
+    email = joakim@tveter.net
+EOF
+    log_success "Created personal-specific Git config: $PERSONAL_GITCONFIG"
+    
+    # Update global gitconfig to include conditional configs
+    GLOBAL_GITCONFIG="$HOME/.gitconfig"
+    
+    # Check if conditional includes are already configured
+    if ! grep -q "includeIf.*gitdir:.*code/work" "$GLOBAL_GITCONFIG" 2>/dev/null; then
+        cat >> "$GLOBAL_GITCONFIG" << EOF
+
+[includeIf "gitdir:~/code/work/"]
+    path = ~/code/work/.gitconfig
+
+[includeIf "gitdir:~/code/personal/"]
+    path = ~/code/personal/.gitconfig
+EOF
+        log_success "Added conditional Git config includes to ~/.gitconfig"
+    else
+        log_info "Git conditional includes already configured"
+    fi
+    
+    log_info "Git configuration complete:"
+    log_info "  👤 Global name: Joakim Tveter"
+    log_info "  📧 Work email (~/code/work/*): joakim@work.com"
+    log_info "  📧 Personal email (~/code/personal/*): joakim@home.com"
+else
+    log_warning "Git not found - skipping Git configuration"
+fi
+
 log_success "Setup complete! Your Mac is ready to go 🚀"
 log_info "Restart your terminal or run 'source ~/.zshrc' to ensure all changes take effect."
 
