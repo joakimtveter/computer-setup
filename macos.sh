@@ -20,27 +20,36 @@ if [[ "$(uname)" != "Darwin" ]]; then
     exit 1
 fi
 
-log_info "Starting macOS development environment setup..."
+log_info "Starting macOS setup..."
 
-# Function to check if a command exists
+# Prompt for work email
+echo ""
+echo -e "${BLUE}ℹ️  Please enter your work email address (or press Enter to skip):${NC}"
+read -r WORK_EMAIL
+if [[ -z "$WORK_EMAIL" ]]; then
+    log_warning "No work email provided, work git config will be skipped"
+else
+    log_success "Work email set to: $WORK_EMAIL"
+fi
+echo ""
+
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to safely source a file if it exists
 safe_source() {
     if [[ -f "$1" ]]; then
-        # Use a subshell to avoid potential issues with set -e
-        (source "$1") || log_warning "Failed to source $1, continuing anyway..."
+        set +e
+        source "$1"
+        set -e
     fi
 }
 
-# Check if Homebrew is already installed
+# Install Homebrew
 if command_exists brew; then
     log_success "Homebrew is already installed at: $(which brew)"
 else
     log_info "Installing Homebrew..."
-    # Use the official install script
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     log_success "Homebrew installation complete."
 fi
@@ -142,7 +151,8 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
 # Install latest LTS version of Node.js
-if command_exists nvm; then
+# NVM is a shell function, not a command, so we check if the function exists
+if type nvm &>/dev/null; then
     log_info "Installing latest LTS version of Node.js with NVM..."
     nvm install --lts --latest-npm
     nvm alias default lts/*
@@ -153,6 +163,22 @@ else
     log_info "You may need to restart your terminal and run: nvm install --lts"
 fi
 
+# Install Claude Code CLI
+if command_exists npm; then
+    if command_exists claude; then
+        log_success "Claude Code is already installed"
+    else
+        log_info "Installing Claude Code CLI..."
+        if npm install -g @anthropic-ai/claude-code; then
+            log_success "Successfully installed Claude Code"
+        else
+            log_error "Failed to install Claude Code"
+        fi
+    fi
+else
+    log_warning "npm not available — Claude Code installation skipped."
+fi
+
 ### --- Install Apps via Homebrew ---
 log_info "Installing applications with Homebrew..."
 
@@ -161,22 +187,22 @@ brew update || log_warning "Failed to update Homebrew"
 
 # Array of cask apps to install
 declare -a cask_apps=(
-    "aerospace"
     "raycast"
     "vivaldi"
     "google-chrome"
     "ghostty"
-    "displaylink"
     "postman"
     "dbeaver-community"
-    "omnissa-horizon-client"
     "obsidian"
     "espanso"
-    "bitwarden"
     "docker-desktop"
     "microsoft-teams"
     "microsoft-outlook"
     "notunes"
+#    Optional Work Stuff
+#    "displaylink"
+#    "omnissa-horizon-client"
+#    "bitwarden"
 )
 
 # Install each cask app
@@ -203,8 +229,9 @@ declare -a cli_tools=(
     "jq"
     "tree"
     "imagemagick"
-    "wp-cli"
-    "taskell"
+    "ripgrep"
+    "fzf"
+    "zoxide"
     "mas"
     "mpv"
     "ffmpeg"
@@ -222,6 +249,42 @@ for tool in "${cli_tools[@]}"; do
         fi
     fi
 done
+
+# Install Mac App Store apps using mas
+if command_exists mas; then
+    log_info "Installing Mac App Store applications..."
+
+    # Check if signed into Mac App Store
+    if mas account &>/dev/null; then
+        log_success "Signed into Mac App Store"
+
+        # Array of Mac App Store apps (format: "app_id:app_name")
+        declare -a mas_apps=(
+            "1596283165:rcmd"
+        )
+
+        for entry in "${mas_apps[@]}"; do
+            app_id="${entry%%:*}"
+            app_name="${entry##*:}"
+
+            if mas list | grep -q "^$app_id"; then
+                log_success "$app_name is already installed"
+            else
+                log_info "Installing $app_name from Mac App Store..."
+                if mas install "$app_id"; then
+                    log_success "Successfully installed $app_name"
+                else
+                    log_error "Failed to install $app_name"
+                fi
+            fi
+        done
+    else
+        log_warning "Not signed into Mac App Store — skipping App Store installations"
+        log_info "Sign in to the App Store..."
+    fi
+else
+    log_warning "mas not available — skipping Mac App Store installations"
+fi
 
 # Create development directory structure
 log_info "Creating development directory structure..."
@@ -244,14 +307,16 @@ if command_exists git; then
     # Set global git name
     git config --global user.name "Joakim Tveter"
     log_success "Set global Git name to: Joakim Tveter"
-    
+
     # Configure work folder git email using conditional includes
     WORK_GITCONFIG="$CODE_DIR/work/.gitconfig"
-    cat > "$WORK_GITCONFIG" << EOF
+    if [[ -n "$WORK_EMAIL" ]]; then
+        cat > "$WORK_GITCONFIG" << EOF
 [user]
-    email = joakim.tveter@netpower.no
+    email = $WORK_EMAIL
 EOF
-    log_success "Created work-specific Git config: $WORK_GITCONFIG"
+        log_success "Created work-specific Git config: $WORK_GITCONFIG"
+    fi
     
     # Configure personal folder git email using conditional includes
     PERSONAL_GITCONFIG="$CODE_DIR/personal/.gitconfig"
@@ -264,6 +329,12 @@ EOF
     # Update global gitconfig to include conditional configs
     GLOBAL_GITCONFIG="$HOME/.gitconfig"
     
+    # Set a default email for repositories outside work/personal directories
+    if ! git config --global user.email &>/dev/null; then
+        git config --global user.email "joakim@tveter.net"
+        log_success "Set default Git email to: joakim@tveter.net"
+    fi
+
     # Check if conditional includes are already configured
     if ! grep -q "includeIf.*gitdir:.*code/work" "$GLOBAL_GITCONFIG" 2>/dev/null; then
         cat >> "$GLOBAL_GITCONFIG" << EOF
@@ -281,8 +352,9 @@ EOF
     
     log_info "Git configuration complete:"
     log_info "  👤 Global name: Joakim Tveter"
-    log_info "  📧 Work email (~/code/work/*): joakim@work.com"
-    log_info "  📧 Personal email (~/code/personal/*): joakim@home.com"
+    log_info "  📧 Default email: joakim@tveter.net"
+    [[ -n "$WORK_EMAIL" ]] && log_info "  📧 Work email (~/code/work/*): $WORK_EMAIL"
+    log_info "  📧 Personal email (~/code/personal/*): joakim@tveter.net"
 else
     log_warning "Git not found - skipping Git configuration"
 fi
@@ -297,3 +369,4 @@ command_exists brew && echo "  Homebrew: $(brew --version | head -n1)"
 command_exists node && echo "  Node.js: $(node -v)"
 command_exists npm && echo "  npm: $(npm -v)"
 command_exists git && echo "  Git: $(git --version)"
+command_exists claude && echo "  Claude Code: $(claude --version)"
