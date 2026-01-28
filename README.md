@@ -7,5 +7,5 @@ Scripts to set up my computer
 
 These apps needs to be manually installed:
 
-- Palo Alto Networks - GlobalProtect
-- Proton Pass
+- [Proton Pass](https://proton.me/pass)
+- [iTerm2](https://iterm2.com/downloads.html) 
