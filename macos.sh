@@ -22,14 +22,29 @@ fi
 
 log_info "Starting macOS setup..."
 
-# Prompt for work email
+# Prompt for setup type
 echo ""
-echo -e "${BLUE}ℹ️  Please enter your work email address (or press Enter to skip):${NC}"
-read -r WORK_EMAIL
-if [[ -z "$WORK_EMAIL" ]]; then
-    log_warning "No work email provided, work git config will be skipped"
+echo -e "${BLUE}ℹ️  Is this a work or personal laptop?${NC}"
+echo "  1) Personal"
+echo "  2) Work"
+read -rp "Choose [1/2]: " SETUP_TYPE
+echo ""
+
+IS_WORK=false
+WORK_EMAIL=""
+
+if [[ "$SETUP_TYPE" == "2" ]]; then
+    IS_WORK=true
+    echo -e "${BLUE}ℹ️  Please enter your work email address (or press Enter to skip):${NC}"
+    read -r WORK_EMAIL
+    if [[ -z "$WORK_EMAIL" ]]; then
+        log_warning "No work email provided, work git config will be skipped"
+    else
+        log_success "Work email set to: $WORK_EMAIL"
+    fi
+    log_info "Setting up as a WORK laptop"
 else
-    log_success "Work email set to: $WORK_EMAIL"
+    log_info "Setting up as a PERSONAL laptop"
 fi
 echo ""
 
@@ -92,7 +107,7 @@ else
     log_info "Installing Oh My Zsh..."
     # Backup existing .zshrc if it exists
     if [[ -f ~/.zshrc ]]; then
-        cp ~/.zshrc ~/.zshrc.backup.$(date +%Y%m%d_%H%M%S)
+        cp ~/.zshrc ~/.zshrc.backup."$(date +%Y%m%d_%H%M%S)"
         log_info "Backed up existing .zshrc"
     fi
     
@@ -153,11 +168,15 @@ export NVM_DIR="$HOME/.nvm"
 # Install latest LTS version of Node.js
 # NVM is a shell function, not a command, so we check if the function exists
 if type nvm &>/dev/null; then
-    log_info "Installing latest LTS version of Node.js with NVM..."
-    nvm install --lts --latest-npm
-    nvm alias default lts/*
-    nvm use default
-    log_success "Installed Node.js $(node -v) and npm $(npm -v), set as default."
+    if command_exists node && nvm version default &>/dev/null; then
+        log_success "Node.js $(node -v) is already installed (npm $(npm -v))"
+    else
+        log_info "Installing latest LTS version of Node.js with NVM..."
+        nvm install --lts --latest-npm
+        nvm alias default 'lts/*'
+        nvm use default
+        log_success "Installed Node.js $(node -v) and npm $(npm -v), set as default."
+    fi
 else
     log_warning "NVM not found in current session — Node.js installation skipped."
     log_info "You may need to restart your terminal and run: nvm install --lts"
@@ -185,7 +204,7 @@ log_info "Installing applications with Homebrew..."
 # Update Homebrew first
 brew update || log_warning "Failed to update Homebrew"
 
-# Array of cask apps to install
+# Common apps for both setups
 declare -a cask_apps=(
     "raycast"
     "vivaldi"
@@ -196,24 +215,29 @@ declare -a cask_apps=(
     "spotify"
     "claude-code"
     "postman"
-    "dbeaver-community"
     "obsidian"
     "espanso"
     "docker-desktop"
-    "proton-pass"
     "notunes"
-#   -- Required Work Stuff -- #
-#    "microsoft-teams"
-#    "microsoft-outlook"
-#    "microsoft-powerpoint"
-#    "figma"
-#    "webstorm"
-#    "rider"
-#   -- Optional Work Stuff -- #
-#    "displaylink"
-#    "omnissa-horizon-client"
-#    "bitwarden"
+    "webstorm"
 )
+
+if [[ "$IS_WORK" == true ]]; then
+    # Work-specific apps
+    cask_apps+=(
+        "microsoft-teams"
+        "dbeaver-community"
+        "microsoft-outlook"
+        "figma"
+        "rider"
+        "displaylink"
+    )
+else
+    # Personal-specific apps
+    cask_apps+=(
+        "proton-pass"
+    )
+fi
 
 # Install each cask app
 for app in "${cask_apps[@]}"; do
@@ -298,76 +322,95 @@ fi
 
 # Create development directory structure
 log_info "Creating development directory structure..."
-CODE_DIR="$HOME/code"
-if [[ ! -d "$CODE_DIR" ]]; then
-    mkdir -p "$CODE_DIR"/{work,personal}
+CODE_DIR="$HOME/Code"
+mkdir -p "$CODE_DIR"
+
+if [[ "$IS_WORK" == true ]]; then
+    # Work laptop: ~/Code/personal for personal projects, ~/Code is the work root
+    mkdir -p "$CODE_DIR/personal"
     log_success "Created development directories:"
-    log_info "  📁 ~/code/work"
-    log_info "  📁 ~/code/personal"
+    log_info "  📁 ~/Code (work)"
+    log_info "  📁 ~/Code/personal"
 else
-    # Create subdirectories if they don't exist
-    [[ ! -d "$CODE_DIR/work" ]] && mkdir -p "$CODE_DIR/work" && log_success "Created ~/code/work directory"
-    [[ ! -d "$CODE_DIR/personal" ]] && mkdir -p "$CODE_DIR/personal" && log_success "Created ~/code/personal directory"
-    log_info "Development directory structure verified"
+    # Personal laptop: ~/Code is the root, no subdirectories
+    log_success "Created development directory:"
+    log_info "  📁 ~/Code"
 fi
 
 # Configure Git
 log_info "Configuring Git..."
 if command_exists git; then
-    # Set global git name
     git config --global user.name "Joakim Tveter"
     log_success "Set global Git name to: Joakim Tveter"
 
-    # Configure work folder git email using conditional includes
-    WORK_GITCONFIG="$CODE_DIR/work/.gitconfig"
-    if [[ -n "$WORK_EMAIL" ]]; then
-        cat > "$WORK_GITCONFIG" << EOF
-[user]
-    email = $WORK_EMAIL
-EOF
-        log_success "Created work-specific Git config: $WORK_GITCONFIG"
-    fi
-    
-    # Configure personal folder git email using conditional includes
-    PERSONAL_GITCONFIG="$CODE_DIR/personal/.gitconfig"
-    cat > "$PERSONAL_GITCONFIG" << EOF
+    GLOBAL_GITCONFIG="$HOME/.gitconfig"
+
+    if [[ "$IS_WORK" == true ]]; then
+        # Work laptop: work email globally, personal email for ~/Code/personal/
+        if [[ -n "$WORK_EMAIL" ]]; then
+            git config --global user.email "$WORK_EMAIL"
+            log_success "Set global Git email to: $WORK_EMAIL"
+        fi
+
+        # Personal override for ~/Code/personal/
+        PERSONAL_GITCONFIG="$CODE_DIR/personal/.gitconfig"
+        cat > "$PERSONAL_GITCONFIG" << EOF
 [user]
     email = joakim@tveter.net
 EOF
-    log_success "Created personal-specific Git config: $PERSONAL_GITCONFIG"
-    
-    # Update global gitconfig to include conditional configs
-    GLOBAL_GITCONFIG="$HOME/.gitconfig"
-    
-    # Set a default email for repositories outside work/personal directories
-    if ! git config --global user.email &>/dev/null; then
-        git config --global user.email "joakim@tveter.net"
-        log_success "Set default Git email to: joakim@tveter.net"
-    fi
+        log_success "Created personal-specific Git config: $PERSONAL_GITCONFIG"
 
-    # Check if conditional includes are already configured
-    if ! grep -q "includeIf.*gitdir:.*code/work" "$GLOBAL_GITCONFIG" 2>/dev/null; then
-        cat >> "$GLOBAL_GITCONFIG" << EOF
+        if ! grep -q "includeIf.*gitdir:.*code/personal" "$GLOBAL_GITCONFIG" 2>/dev/null; then
+            cat >> "$GLOBAL_GITCONFIG" << EOF
 
-[includeIf "gitdir:~/code/work/"]
-    path = ~/code/work/.gitconfig
-
-[includeIf "gitdir:~/code/personal/"]
-    path = ~/code/personal/.gitconfig
+[includeIf "gitdir:~/Code/personal/"]
+    path = ~/Code/personal/.gitconfig
 EOF
-        log_success "Added conditional Git config includes to ~/.gitconfig"
+            log_success "Added conditional Git config for ~/Code/personal/"
+        else
+            log_info "Git conditional includes already configured"
+        fi
+
+        log_info "Git configuration complete:"
+        log_info "  👤 Global name: Joakim Tveter"
+        [[ -n "$WORK_EMAIL" ]] && log_info "  📧 Work email (global): $WORK_EMAIL"
+        log_info "  📧 Personal email (~/Code/personal/*): joakim@tveter.net"
     else
-        log_info "Git conditional includes already configured"
+        # Personal laptop: personal email globally, no conditional includes
+        git config --global user.email "joakim@tveter.net"
+        log_success "Set global Git email to: joakim@tveter.net"
+
+        log_info "Git configuration complete:"
+        log_info "  👤 Global name: Joakim Tveter"
+        log_info "  📧 Email: joakim@tveter.net"
     fi
-    
-    log_info "Git configuration complete:"
-    log_info "  👤 Global name: Joakim Tveter"
-    log_info "  📧 Default email: joakim@tveter.net"
-    [[ -n "$WORK_EMAIL" ]] && log_info "  📧 Work email (~/code/work/*): $WORK_EMAIL"
-    log_info "  📧 Personal email (~/code/personal/*): joakim@tveter.net"
 else
     log_warning "Git not found - skipping Git configuration"
 fi
+
+# Configure macOS Settings
+log_info "Configuring macOS settings..."
+
+# Dock: Auto-hide
+defaults write com.apple.dock autohide -bool true
+defaults write com.apple.dock autohide-delay -float 0
+defaults write com.apple.dock autohide-time-modifier -int 0
+log_success "Dock: Auto-hide enabled, no delay or animation"
+defaults write com.apple.dock tilesize -int 32
+log_success "Dock: Resize the dock"
+defaults write com.apple.dock show-recents -bool false
+log_success "Dock: Remove resent applications"
+killall Dock
+
+defaults write -g AppleShowAllExtensions -bool true
+log_success "Finder: Show file extensions"
+defaults write com.apple.finder ShowStatusBar -bool true
+defaults write com.apple.finder ShowPathbar -bool true
+log_success "Finder: Show path bar and status bar"
+
+killall Finder;
+
+log_success "macOS settings configured"
 
 log_success "Setup complete! Your Mac is ready to go 🚀"
 log_info "Restart your terminal or run 'source ~/.zshrc' to ensure all changes take effect."
