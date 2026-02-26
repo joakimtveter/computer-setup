@@ -206,36 +206,36 @@ brew update || log_warning "Failed to update Homebrew"
 
 # Common apps for both setups
 declare -a cask_apps=(
-    "raycast"
-    "vivaldi"
-    "google-chrome"
-    "colour-contrast-analyser"
-    "ghostty"
-    "iterm2"
-    "spotify"
     "claude-code"
-    "postman"
-    "obsidian"
-    "espanso"
+    "colour-contrast-analyser"
     "docker-desktop"
+    "espanso"
+    "ghostty"
+    "google-chrome"
+    "iterm2"
     "notunes"
+    "postman"
+    "proton-pass"
+    "raycast"
+    "spotify"
+    "vivaldi"
     "webstorm"
 )
 
 if [[ "$IS_WORK" == true ]]; then
     # Work-specific apps
     cask_apps+=(
-        "microsoft-teams"
         "dbeaver-community"
-        "microsoft-outlook"
+#       "displaylink"
         "figma"
-        "rider"
-        "displaylink"
+        "microsoft-teams"
+        "microsoft-outlook"
+#       "rider"
     )
 else
     # Personal-specific apps
     cask_apps+=(
-        "proton-pass"
+        "protonvpn"
     )
 fi
 
@@ -257,6 +257,7 @@ done
 log_info "Installing useful CLI tools..."
 declare -a cli_tools=(
     "python"
+    "pnpm"
     "git"
     "curl"
     "wget"
