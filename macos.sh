@@ -178,7 +178,6 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
 # Install latest LTS version of Node.js
-# NVM is a shell function, not a command, so we check if the function exists
 if type nvm &>/dev/null; then
     if command_exists node && nvm version default &>/dev/null; then
         log_success "Node.js $(node -v) is already installed (npm $(npm -v))"
@@ -192,22 +191,6 @@ if type nvm &>/dev/null; then
 else
     log_warning "NVM not found in current session — Node.js installation skipped."
     log_info "You may need to restart your terminal and run: nvm install --lts"
-fi
-
-# Install Claude Code CLI
-if command_exists npm; then
-    if command_exists claude; then
-        log_success "Claude Code is already installed"
-    else
-        log_info "Installing Claude Code CLI..."
-        if npm install -g @anthropic-ai/claude-code; then
-            log_success "Successfully installed Claude Code"
-        else
-            log_error "Failed to install Claude Code"
-        fi
-    fi
-else
-    log_warning "npm not available — Claude Code installation skipped."
 fi
 
 ### --- Install Apps via Homebrew ---
