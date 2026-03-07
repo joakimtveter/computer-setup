@@ -14,12 +14,17 @@ log_success() { echo -e "${GREEN}✅ $1${NC}"; }
 log_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 log_error() { echo -e "${RED}❌ $1${NC}"; }
 
-# Check if running on macOS
+# Check if running on macOS 26 or newer
 if [[ "$(uname)" != "Darwin" ]]; then
     log_error "This script is designed for macOS only."
     exit 1
 fi
 
+MACOS_VERSION=$(sw_vers -productVersion | cut -d. -f1)
+if [[ "$MACOS_VERSION" -lt 26 ]]; then
+    log_error "This script requires macOS 26 or newer. You are running macOS $MACOS_VERSION."
+    exit 1
+fi
 log_info "Starting macOS setup..."
 
 # Prompt for setup type
@@ -31,17 +36,16 @@ read -rp "Choose [1/2]: " SETUP_TYPE
 echo ""
 
 IS_WORK=false
-WORK_EMAIL=""
+
+echo -e "${BLUE}ℹ️  Please enter your email address (default: joakim@tveter.net):${NC}"
+read -r USER_EMAIL
+if [[ -z "$USER_EMAIL" ]]; then
+    USER_EMAIL="joakim@tveter.net"
+fi
+log_success "Email set to: $USER_EMAIL"
 
 if [[ "$SETUP_TYPE" == "2" ]]; then
     IS_WORK=true
-    echo -e "${BLUE}ℹ️  Please enter your work email address (or press Enter to skip):${NC}"
-    read -r WORK_EMAIL
-    if [[ -z "$WORK_EMAIL" ]]; then
-        log_warning "No work email provided, work git config will be skipped"
-    else
-        log_success "Work email set to: $WORK_EMAIL"
-    fi
     log_info "Setting up as a WORK laptop"
 else
     log_info "Setting up as a PERSONAL laptop"
@@ -326,17 +330,8 @@ log_info "Creating development directory structure..."
 CODE_DIR="$HOME/Code"
 mkdir -p "$CODE_DIR"
 
-if [[ "$IS_WORK" == true ]]; then
-    # Work laptop: ~/Code/personal for personal projects, ~/Code is the work root
-    mkdir -p "$CODE_DIR/personal"
-    log_success "Created development directories:"
-    log_info "  📁 ~/Code (work)"
-    log_info "  📁 ~/Code/personal"
-else
-    # Personal laptop: ~/Code is the root, no subdirectories
-    log_success "Created development directory:"
-    log_info "  📁 ~/Code"
-fi
+log_success "Created development directory:"
+log_info "  📁 ~/Code"
 
 # Configure Git
 log_info "Configuring Git..."
@@ -344,47 +339,12 @@ if command_exists git; then
     git config --global user.name "Joakim Tveter"
     log_success "Set global Git name to: Joakim Tveter"
 
-    GLOBAL_GITCONFIG="$HOME/.gitconfig"
+    git config --global user.email "$USER_EMAIL"
+    log_success "Set global Git email to: $USER_EMAIL"
 
-    if [[ "$IS_WORK" == true ]]; then
-        # Work laptop: work email globally, personal email for ~/Code/personal/
-        if [[ -n "$WORK_EMAIL" ]]; then
-            git config --global user.email "$WORK_EMAIL"
-            log_success "Set global Git email to: $WORK_EMAIL"
-        fi
-
-        # Personal override for ~/Code/personal/
-        PERSONAL_GITCONFIG="$CODE_DIR/personal/.gitconfig"
-        cat > "$PERSONAL_GITCONFIG" << EOF
-[user]
-    email = joakim@tveter.net
-EOF
-        log_success "Created personal-specific Git config: $PERSONAL_GITCONFIG"
-
-        if ! grep -q "includeIf.*gitdir:.*code/personal" "$GLOBAL_GITCONFIG" 2>/dev/null; then
-            cat >> "$GLOBAL_GITCONFIG" << EOF
-
-[includeIf "gitdir:~/Code/personal/"]
-    path = ~/Code/personal/.gitconfig
-EOF
-            log_success "Added conditional Git config for ~/Code/personal/"
-        else
-            log_info "Git conditional includes already configured"
-        fi
-
-        log_info "Git configuration complete:"
-        log_info "  👤 Global name: Joakim Tveter"
-        [[ -n "$WORK_EMAIL" ]] && log_info "  📧 Work email (global): $WORK_EMAIL"
-        log_info "  📧 Personal email (~/Code/personal/*): joakim@tveter.net"
-    else
-        # Personal laptop: personal email globally, no conditional includes
-        git config --global user.email "joakim@tveter.net"
-        log_success "Set global Git email to: joakim@tveter.net"
-
-        log_info "Git configuration complete:"
-        log_info "  👤 Global name: Joakim Tveter"
-        log_info "  📧 Email: joakim@tveter.net"
-    fi
+    log_info "Git configuration complete:"
+    log_info "  👤 Global name: Joakim Tveter"
+    log_info "  📧 Email: $USER_EMAIL"
 else
     log_warning "Git not found - skipping Git configuration"
 fi
