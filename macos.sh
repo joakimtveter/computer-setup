@@ -201,7 +201,6 @@ brew update || log_warning "Failed to update Homebrew"
 
 # Common apps for both setups
 declare -a cask_apps=(
-    "claude-code"
     "colour-contrast-analyser"
     "docker-desktop"
     "espanso"
@@ -220,9 +219,9 @@ declare -a cask_apps=(
 if [[ "$IS_WORK" == true ]]; then
     # Work-specific apps
     cask_apps+=(
-        "dbeaver-community"
+#       "dbeaver-community"
 #       "displaylink"
-        "figma"
+#       "figma"
         "microsoft-teams"
         "microsoft-outlook"
 #       "rider"
@@ -230,7 +229,11 @@ if [[ "$IS_WORK" == true ]]; then
 else
     # Personal-specific apps
     cask_apps+=(
+        "claude-code"
+        "logi-options+"
         "protonvpn"
+        "proton-drive"
+        "proton-mail"
     )
 fi
 
