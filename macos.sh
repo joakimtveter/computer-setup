@@ -352,6 +352,10 @@ defaults write com.apple.dock tilesize -int 32
 log_success "Dock: Resize the dock"
 defaults write com.apple.dock show-recents -bool false
 log_success "Dock: Remove resent applications"
+defaults write com.apple.dock minimize-to-application -bool true
+log_success "Dock: Minimize windows into application icon"
+defaults write com.apple.dock mineffect -string "scale"
+log_success "Dock: Set minimize animation to scale effect"
 killall Dock
 
 defaults write -g AppleShowAllExtensions -bool true
