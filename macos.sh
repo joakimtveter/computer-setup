@@ -366,13 +366,50 @@ log_success "Finder: Show file extensions"
 defaults write com.apple.finder ShowStatusBar -bool true
 defaults write com.apple.finder ShowPathbar -bool true
 log_success "Finder: Show path bar and status bar"
+defaults write com.apple.finder ShowRecentTags -bool false
+log_success "Finder: Removed tags from sidebar"
+defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool false
+defaults write com.apple.finder ShowRemovableMediaOnDesktop -bool false
+log_success "Finder: Hide external hard drives and CDs from desktop"
+defaults write com.apple.finder NewWindowTarget -string "PfHm"
+defaults write com.apple.finder NewWindowTargetPath -string "file://${HOME}/"
+log_success "Finder: New windows open home folder"
+defaults write com.apple.finder _FXSortFoldersFirst -bool true
+defaults write com.apple.finder _FXSortFoldersFirstOnDesktop -bool true
+log_success "Finder: Keep folders on top in windows and desktop"
+defaults write com.apple.finder ShowRecents -bool false
+log_success "Finder: Removed Recents from sidebar"
+defaults write com.apple.sidebarlists systemitems -dict-add ShowHardDisks -bool false
+log_success "Finder: Removed Macintosh HD from sidebar"
+defaults write com.apple.sidebarlists systemitems -dict-add ShowServers -bool false
+defaults write com.apple.sidebarlists systemitems -dict-add ShowConnectedServers -bool false
+log_success "Finder: Removed Shared section from sidebar"
+defaults write com.apple.finder SidebarTrashSection -bool false
+log_success "Finder: Removed Trash from sidebar"
 
 killall Finder;
+
+# Trackpad: Secondary click with bottom-right corner
+defaults write com.apple.AppleMultitouchTrackpad TrackpadCornerSecondaryClick -int 2
+defaults write com.apple.AppleMultitouchTrackpad TrackpadRightClick -bool false
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadCornerSecondaryClick -int 2
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadRightClick -bool false
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.trackpadCornerClickBehavior -int 1
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.enableSecondaryClick -bool true
+log_success "Trackpad: Secondary click set to bottom-right corner"
+
+# Trackpad: App Exposé with three-finger swipe down
+defaults write com.apple.dock showAppExposeGestureEnabled -bool true
+defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerVertSwipeGesture -int 2
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadThreeFingerVertSwipeGesture -int 2
+log_success "Trackpad: App Exposé enabled (swipe down with 3 fingers)"
+killall Dock
 
 log_success "macOS settings configured"
 
 log_success "Setup complete! Your Mac is ready to go 🚀"
 log_info "Restart your terminal or run 'source ~/.zshrc' to ensure all changes take effect."
+log_warning "Some macOS settings (e.g. trackpad) require a logout or restart to take effect."
 
 # Display versions of installed tools
 echo ""
