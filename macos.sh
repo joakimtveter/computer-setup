@@ -59,6 +59,7 @@ command_exists() {
 safe_source() {
     if [[ -f "$1" ]]; then
         set +e
+        # shellcheck source=/dev/null
         source "$1"
         set -e
     fi
@@ -109,25 +110,37 @@ if [[ -d "${ZSH:-$HOME/.oh-my-zsh}" ]]; then
     log_success "Oh My Zsh is already installed."
 else
     log_info "Installing Oh My Zsh..."
-    # Backup existing .zshrc if it exists
     if [[ -f ~/.zshrc ]]; then
         cp ~/.zshrc ~/.zshrc.backup."$(date +%Y%m%d_%H%M%S)"
         log_info "Backed up existing .zshrc"
     fi
-    
+
     RUNZSH=no  # prevents the installer from launching a new zsh session
     CHSH=no    # prevents it from changing the default shell
     export RUNZSH CHSH
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     sed -i '' 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' ~/.zshrc
+    log_success "Oh My Zsh installation complete."
+fi
 
-    # Install zsh plugins
-    ZSH_CUSTOM_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM_DIR/plugins/zsh-syntax-highlighting"
-    git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM_DIR/plugins/zsh-autosuggestions"
-    git clone https://github.com/zsh-users/zsh-completions "$ZSH_CUSTOM_DIR/plugins/zsh-completions"
+# Install zsh plugins via OMZ custom dir (idempotent — runs on every invocation)
+ZSH_CUSTOM_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+for plugin in zsh-syntax-highlighting zsh-autosuggestions zsh-completions; do
+    if [[ -d "$ZSH_CUSTOM_DIR/plugins/$plugin" ]]; then
+        log_success "zsh plugin already installed: $plugin"
+    else
+        log_info "Installing zsh plugin: $plugin..."
+        git clone "https://github.com/zsh-users/$plugin" "$ZSH_CUSTOM_DIR/plugins/$plugin"
+        log_success "Installed zsh plugin: $plugin"
+    fi
+done
+
+# Update plugins=() line in .zshrc if not already updated
+if grep -q 'plugins=(git)' ~/.zshrc; then
     sed -i '' 's/plugins=(git)/plugins=(git zsh-syntax-highlighting zsh-autosuggestions zsh-completions)/' ~/.zshrc
-    log_success "Oh My Zsh installation complete (theme: agnoster, plugins: zsh-syntax-highlighting, zsh-autosuggestions, zsh-completions)."
+    log_success "Configured OMZ plugins in ~/.zshrc"
+else
+    log_success "OMZ plugins already configured in ~/.zshrc"
 fi
 
 # Install NVM + Node.js
@@ -274,8 +287,6 @@ cli_tools=(
     "wget"
 #   "yt-dlp"
     "zoxide"
-    "zsh-autosuggestions"
-    "zsh-syntax-highlighting"
 )
 
 for tool in "${cli_tools[@]}"; do
@@ -290,13 +301,6 @@ for tool in "${cli_tools[@]}"; do
         fi
     fi
 done
-
-# Enable zsh plugins
-grep -qxF 'source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' ~/.zshrc || \
-echo 'source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' >> ~/.zshrc
-
-grep -qxF 'source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh' ~/.zshrc || \
-echo 'source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh' >> ~/.zshrc
 
 
 # Install Mac App Store apps using mas
@@ -338,10 +342,12 @@ fi
 # Create development directory structure
 log_info "Creating development directory structure..."
 CODE_DIR="$HOME/Code"
-mkdir -p "$CODE_DIR"
-
-log_success "Created development directory:"
-log_info "  📁 ~/Code"
+if [[ ! -d "$CODE_DIR" ]]; then
+    mkdir -p "$CODE_DIR"
+    log_success "Created development directory: ~/Code"
+else
+    log_success "Development directory already exists: ~/Code"
+fi
 
 # Configure Git
 log_info "Configuring Git..."
@@ -370,7 +376,7 @@ log_success "Dock: Auto-hide enabled, no delay or animation"
 defaults write com.apple.dock tilesize -int 32
 log_success "Dock: Resize the dock"
 defaults write com.apple.dock show-recents -bool false
-log_success "Dock: Remove resent applications"
+log_success "Dock: Remove recent applications"
 defaults write com.apple.dock minimize-to-application -bool true
 log_success "Dock: Minimize windows into application icon"
 defaults write com.apple.dock mineffect -string "scale"
@@ -403,7 +409,7 @@ log_success "Finder: Removed Shared section from sidebar"
 defaults write com.apple.finder SidebarTrashSection -bool false
 log_success "Finder: Removed Trash from sidebar"
 
-killall Finder;
+killall Finder
 
 # Trackpad: Secondary click with bottom-right corner
 defaults write com.apple.AppleMultitouchTrackpad TrackpadCornerSecondaryClick -int 2
