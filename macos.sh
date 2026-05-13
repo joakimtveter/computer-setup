@@ -2,17 +2,17 @@
 set -e  # Exit immediately if a command fails
 
 # Colors for better output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+RED=$'\033[0;31m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+BLUE=$'\033[0;34m'
+NC=$'\033[0m' # No Color
 
 # Logging functions
-log_info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
-log_success() { echo -e "${GREEN}✅ $1${NC}"; }
-log_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
-log_error() { echo -e "${RED}❌ $1${NC}"; }
+log_info()    { printf "%s\n" "${BLUE}ℹ️  $1${NC}"; }
+log_success() { printf "%s\n" "${GREEN}✅ $1${NC}"; }
+log_warning() { printf "%s\n" "${YELLOW}⚠️  $1${NC}"; }
+log_error()   { printf "%s\n" "${RED}❌ $1${NC}"; }
 
 # Check if running on macOS 26 or newer
 if [[ "$(uname)" != "Darwin" ]]; then
@@ -29,15 +29,15 @@ log_info "Starting macOS setup..."
 
 # Prompt for setup type
 echo ""
-echo -e "${BLUE}ℹ️  Is this a work or personal laptop?${NC}"
+printf "%s\n" "${BLUE}ℹ️  Is this a work or personal laptop?${NC}"
 echo "  1) Personal"
 echo "  2) Work"
-read -rp "Choose [1/2]: " SETUP_TYPE
+read -r "SETUP_TYPE?Choose [1/2]: "
 echo ""
 
 IS_WORK=false
 
-echo -e "${BLUE}ℹ️  Please enter your email address (default: joakim@tveter.net):${NC}"
+printf "%s\n" "${BLUE}ℹ️  Please enter your email address (default: joakim@tveter.net):${NC}"
 read -r USER_EMAIL
 if [[ -z "$USER_EMAIL" ]]; then
     USER_EMAIL="joakim@tveter.net"
@@ -200,7 +200,7 @@ log_info "Installing applications with Homebrew..."
 brew update || log_warning "Failed to update Homebrew"
 
 # Common apps for both setups
-declare -a cask_apps=(
+cask_apps=(
     "colour-contrast-analyser"
     # "dbeaver-community"
     "docker-desktop"
@@ -257,7 +257,7 @@ done
 
 # Optional: Install some useful CLI tools
 log_info "Installing useful CLI tools..."
-declare -a cli_tools=(
+cli_tools=(
     "curl"
     "ffmpeg"
     "fzf"
@@ -308,7 +308,7 @@ if command_exists mas; then
         log_success "Signed into Mac App Store"
 
         # Array of Mac App Store apps (format: "app_id:app_name")
-        declare -a mas_apps=(
+        mas_apps=(
             "1596283165:rcmd"
         )
 
