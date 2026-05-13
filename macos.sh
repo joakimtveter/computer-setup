@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 set -e  # Exit immediately if a command fails
 
 # Colors for better output
@@ -202,16 +202,21 @@ brew update || log_warning "Failed to update Homebrew"
 # Common apps for both setups
 declare -a cask_apps=(
     "colour-contrast-analyser"
+    # "dbeaver-community"
     "docker-desktop"
     "espanso"
+    "font-meslo-lg-nerd-font"
     "ghostty"
     "google-chrome"
     "iterm2"
+    "logi-options+"
     "notunes"
     "postman"
     "proton-pass"
     "raycast"
+    "rider"
     "spotify"
+    "thaw"
     "vivaldi"
     "webstorm"
 )
@@ -219,18 +224,17 @@ declare -a cask_apps=(
 if [[ "$IS_WORK" == true ]]; then
     # Work-specific apps
     cask_apps+=(
-#       "dbeaver-community"
 #       "displaylink"
 #       "figma"
-        "microsoft-teams"
         "microsoft-outlook"
-#       "rider"
+        "microsoft-powerpoint"
+        "microsoft-teams"
+        "onedrive"
     )
 else
     # Personal-specific apps
     cask_apps+=(
         "claude-code"
-        "logi-options+"
         "protonvpn"
         "proton-drive"
         "proton-mail"
@@ -254,20 +258,23 @@ done
 # Optional: Install some useful CLI tools
 log_info "Installing useful CLI tools..."
 declare -a cli_tools=(
-    "python"
-    "pnpm"
-    "git"
     "curl"
-    "wget"
-    "jq"
-    "tree"
-    "imagemagick"
-    "ripgrep"
+    "ffmpeg"
     "fzf"
-    "zoxide"
+    "git"
+    "imagemagick"
+    "jq"
     "mas"
     "mpv"
-    "ffmpeg"
+    "pnpm"
+    "python"
+    "ripgrep"
+    "tree"
+    "wget"
+#   "yt-dlp"
+    "zoxide"
+    "zsh-autosuggestions"
+    "zsh-syntax-highlighting"
 )
 
 for tool in "${cli_tools[@]}"; do

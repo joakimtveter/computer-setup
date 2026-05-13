@@ -2,10 +2,8 @@
 
 Scripts to set up my computer
 
+## MacOs Setup
 
-## Manual install
+The script is designed for Apple Silicon Macs runing macOS 26 or later.
 
-These apps needs to be manually installed:
-
-- [Proton Pass](https://proton.me/pass)
-- [iTerm2](https://iterm2.com/downloads.html) 
+1. Run script `zsh macos.sh` or `./macos.sh`
