@@ -266,6 +266,7 @@ declare -a cli_tools=(
     "jq"
     "mas"
     "mpv"
+    "neovim"
     "pnpm"
     "python"
     "ripgrep"
@@ -289,6 +290,14 @@ for tool in "${cli_tools[@]}"; do
         fi
     fi
 done
+
+# Enable zsh plugins
+grep -qxF 'source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' ~/.zshrc || \
+echo 'source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' >> ~/.zshrc
+
+grep -qxF 'source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh' ~/.zshrc || \
+echo 'source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh' >> ~/.zshrc
+
 
 # Install Mac App Store apps using mas
 if command_exists mas; then
